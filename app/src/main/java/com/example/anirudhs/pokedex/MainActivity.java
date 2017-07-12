@@ -1,6 +1,7 @@
 package com.example.anirudhs.pokedex;
 
 import android.os.AsyncTask;
+import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.TextUtils;
@@ -12,6 +13,7 @@ import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 
 import com.squareup.picasso.Picasso;
@@ -32,6 +34,7 @@ import java.net.URL;
 
 public class MainActivity extends AppCompatActivity {
 
+
     EditText enterPokemon;
     Button searchButton;
     TextView detailsText;
@@ -39,6 +42,19 @@ public class MainActivity extends AppCompatActivity {
     ImageView pokeImage;
     private String imageUrl;
     private ProgressBar loadBar;
+    Handler handler = new Handler();
+    void Displayerror(final String Errortext){
+
+        handler.post(new Runnable() {
+
+            @Override
+            public void run() {
+                pokeImage.setVisibility(View.GONE);
+                Toast.makeText(MainActivity.this, Errortext, Toast.LENGTH_SHORT).show();
+            }
+
+        });
+    }
 
 
     @Override
@@ -70,7 +86,7 @@ public class MainActivity extends AppCompatActivity {
 
 
     }
-        public class PokeTask extends AsyncTask<String,String,String>{
+    public class PokeTask extends AsyncTask<String,String,String>{
 
         @Override
         protected String doInBackground(String... params) {
@@ -81,7 +97,13 @@ public class MainActivity extends AppCompatActivity {
             try {
                 URL url = new URL(params[0]);
                 connection = (HttpURLConnection) url.openConnection();
-                connection.connect();
+                if(connection.getResponseCode()==200)
+                    connection.connect();
+                else
+                {
+                    Displayerror("Invalid Pokemon Name");
+                }
+
 
                 InputStream stream = connection.getInputStream();
                 reader = new BufferedReader(new InputStreamReader(stream));
@@ -93,27 +115,27 @@ public class MainActivity extends AppCompatActivity {
 
                 }
                 String finalJSON = buffer.toString();
-             try {
-                 JSONObject parentObject = new JSONObject(finalJSON);
-                 JSONArray forms = parentObject.getJSONArray("forms");
-                 JSONObject PokemonName = forms.getJSONObject(0);
-                 JSONArray types = parentObject.getJSONArray("types");
-                 JSONObject type = types.getJSONObject(0);
-                 JSONObject tpyName = type.getJSONObject("type");
+                try {
+                    JSONObject parentObject = new JSONObject(finalJSON);
+                    JSONArray forms = parentObject.getJSONArray("forms");
+                    JSONObject PokemonName = forms.getJSONObject(0);
+                    JSONArray types = parentObject.getJSONArray("types");
+                    JSONObject type = types.getJSONObject(0);
+                    JSONObject tpyName = type.getJSONObject("type");
 
-                 String name = PokemonName.getString("name");
-                 int weight = parentObject.getInt("weight");
-                 int height = parentObject.getInt("height");
-                 String poketype = tpyName.getString("name");
+                    String name = PokemonName.getString("name");
+                    int weight = parentObject.getInt("weight");
+                    int height = parentObject.getInt("height");
+                    String poketype = tpyName.getString("name");
 
 
-                 JSONObject sprites = parentObject.getJSONObject("sprites");
+                    JSONObject sprites = parentObject.getJSONObject("sprites");
 
-                 imageUrl = sprites.getString("front_default");
-                 return "Name     :          " + name + "\n" + "Height    :          " + height + "\n" + "Weight   :          " + weight + "\n"+ "Type       :          "+ poketype;
-             }catch (JSONException e) {
-                 e.printStackTrace();
-             }
+                    imageUrl = sprites.getString("front_default");
+                    return "Name     :          " + name + "\n" + "Height    :          " + height + "\n" + "Weight   :          " + weight + "\n"+ "Type       :          "+ poketype;
+                }catch (JSONException e) {
+                    e.printStackTrace();
+                }
 
 
             } catch (IOException e) {
@@ -134,12 +156,13 @@ public class MainActivity extends AppCompatActivity {
 
         }
 
-            @Override
+        @Override
         protected void onPostExecute(String result) {
             super.onPostExecute(result);
-                loadBar.setVisibility(View.GONE);
+            loadBar.setVisibility(View.GONE);
+            pokeImage.setVisibility(View.VISIBLE);
             detailsText.setText(result);
-                Picasso.with(getApplicationContext()).load(imageUrl).into(pokeImage);
+            Picasso.with(getApplicationContext()).load(imageUrl).into(pokeImage);
 
         }
     }
